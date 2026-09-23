@@ -1,5 +1,5 @@
 import pytest
-from calculator import WiseProvider, RevolutProvider, CzechBankProvider
+from app.services.calculator import WiseProvider, RevolutProvider, CzechBankProvider
 
 MID_RATE = 0.04  # Допустим, 1 CZK = 0.04 EUR (25 CZK за 1 EUR)
 
