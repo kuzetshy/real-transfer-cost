@@ -8,7 +8,7 @@ app = FastAPI(
 )
 
 # Подключаем роутер с префиксом /api
-app.include_router(api_v1_router, prefix="/api")
+app.include_router(api_v1_router, prefix="/api/v1")
 
 @app.get("/")
 def health_check():

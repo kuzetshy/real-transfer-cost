@@ -1,14 +1,15 @@
+# app/api/v1/router.py
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Query
 
 from app.schemas.transfer import ProviderQuote
-from app.services.rates import RatesClient
+from app.services.rates import rates_client  # используем инстанс из rates.py ✨
 from app.services.calculator import WiseProvider, RevolutProvider, CzechBankProvider
 
-router = APIRouter(prefix="/v1", tags=["Transfer Calculation"])
+# Убираем /v1 отсюда, чтобы не было /api/v1/v1
+router = APIRouter(tags=["Transfer Calculation"])
 
-rates_client = RatesClient()
 providers = [
     WiseProvider(),
     RevolutProvider(),
