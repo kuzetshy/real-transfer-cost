@@ -2,7 +2,14 @@
 import pytest
 import httpx
 import respx
+from app.db.session import get_db
 from app.main import app
+
+from datetime import date
+from decimal import Decimal
+from app.db.models import ExchangeRateHistory
+from app.services.history import HistoryService
+from tests.conftest import db_session
 
 @pytest.mark.asyncio
 @respx.mock
@@ -26,3 +33,38 @@ async def test_compare_quotes_success():
     assert len(data) == 3
     # Проверяем, что первый результат отсортирован по максимуму received_amount 🏆
     assert data[0]["received_amount"] >= data[1]["received_amount"]
+
+@pytest.mark.asyncio
+async def test_get_rates_history_endpoint(client, db_session):
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Берем дату, которой гарантированно нет в базе от сидинга
+    test_date = date(2000, 1, 15)
+
+    service = HistoryService(db_session)
+    await service.upsert_rates_batch([
+        {
+            "base_currency": "EUR",
+            "target_currency": "CZK",
+            "rate": Decimal("25.123400"),
+            "rate_date": test_date,
+            "provider": "frankfurter",
+        }
+    ])
+
+    try:
+        response = await client.get(
+            f"/api/v1/rates/history?base=EUR&target=CZK&from_date={test_date.isoformat()}&to_date={test_date.isoformat()}"
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["base_currency"] == "EUR"
+        assert data["target_currency"] == "CZK"
+        assert data["points_count"] >= 1
+        assert any(p["date"] == test_date.isoformat() for p in data["history"])
+    finally:
+        app.dependency_overrides.clear()
