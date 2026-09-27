@@ -1,57 +1,85 @@
-# Real Transfer Cost API 💸
+# 💸 Real Transfer Cost API
 
-A RESTful API service designed to calculate and compare the true costs of international money transfers across multiple providers (Wise, Revolut, Czech banks), accounting for fixed fees and hidden exchange rate markups.
+An asynchronous, transparent currency transfer comparison engine built with **Python 3.13**, **FastAPI**, **PostgreSQL**, and **SQLAlchemy 2.0 (async)**. 
+
+It calculates and reveals true cross-border transfer fees (including hidden mid-market exchange markups) across popular payment providers (Wise, Revolut, Czech Bank) for Czech Koruna (`CZK`), Euro (`EUR`), and US Dollar (`USD`).
 
 ---
 
 ## 🚀 Tech Stack
 
-- **Framework:** Python 3.13, FastAPI, Uvicorn
-- **Data Validation:** Pydantic v2
-- **HTTP Client:** HTTPX (async requests)
-- **Caching:** Cachetools (`TTLCache`)
-- **Exchange Rates Provider:** [Frankfurter API](https://api.frankfurter.dev/v1) (official ECB reference rates)
-- **Testing & Mocking:** Pytest, pytest-asyncio, respx
+- **Framework**: FastAPI (Async REST API)
+- **Database**: PostgreSQL 16 (via Docker Compose)
+- **ORM & Migrations**: SQLAlchemy 2.0 (asyncio + asyncpg) & Alembic
+- **External Data**: Frankfurter API (via `httpx` async client)
+- **Caching**: `cachetools` (TTLCache in-memory layer)
+- **Financial Precision**: Python `Decimal` (preventing floating-point roundoff issues)
+- **Testing**: `pytest`, `pytest-asyncio`, `respx` (100% test pass rate)
 
 ---
 
-## 🏛️ Architectural Highlights
+## 📦 Project Architecture
 
-- **Strategy Pattern (`app/services/calculator.py`):** Encapsulated fee calculation logic per provider behind an abstract base class.
-- **In-Memory Caching (`app/services/rates.py`):** Currency exchange rate caching with a 10-minute TTL to reduce latency and respect third-party rate limits.
-- **Precision Financial Computing:** Standardized on Python's `Decimal` type across calculation modules to eliminate binary floating-point rounding errors.
-- **Clean Layered Architecture:** Strict separation of routing concerns (`api`), validation models (`schemas`), and domain business logic (`services`).
+```text
+real-transfer-cost/
+├── app/
+│   ├── api/v1/          # Versioned API routes (/compare, /rates, /rates/history)
+│   ├── core/            # Configuration & environment settings
+│   ├── db/              # Database models (Base, ExchangeRateHistory) & session maker
+│   ├── schemas/         # Pydantic validation schemas
+│   └── services/        # Business logic (Calculator, Providers, RatesClient, HistoryService)
+├── migrations/          # Alembic asynchronous migrations
+├── scripts/             # CLI utility scripts (seed_history.py)
+├── tests/               # Unit and integration test suite
+├── docker-compose.yml   # PostgreSQL container setup
+└── requirements.txt
 
----
+Getting Started!
+Clone & Set Up Virtual Environment:
 
-## 🛠️ Getting Started
+git clone [https://github.com/kuzetshy/real-transfer-cost.git](https://github.com/kuzetshy/real-transfer-cost.git)
+cd real-transfer-cost
 
-### 1. Environment Setup & Dependencies
-```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt 
 
 
-Run Development Server 
+Environment Configuration
+Create a .env file in the project root:
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=transfer_cost_db
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/transfer_cost_db
+
+Start Database & Run Migrations
+# 1. Start PostgreSQL in background
+docker compose up -d
+
+# 2. Apply database migrations
+alembic upgrade head
+
+# 3. (Optional) Seed 30-day historical rates
+python -m scripts.seed_history
+
+Run Development Server
 uvicorn app.main:app --reload
 
-Interactive Swagger UI documentation will be available at: http://127.0.0.1:8000/docs
+Interactive API documentation will be available at:
+Swagger UI: http://127.0.0.1:8000/docs
+ReDoc: http://127.0.0.1:8000/redoc
 
 
-API Endpoints
-Method      Endpoint            Description
-GET         /                   service health check
-GET         /api/v1/rates       Fetch current mid-market exchange rate
-GET         /api/v1/compare     Compare transfer providers (sorted by best payout ) 
-
-Example Request:
-curl -X GET "[http://127.0.0.1:8000/api/v1/compare?amount=10000&from_currency=CZK&to_currency=EUR](http://127.0.0.1:8000/api/v1/compare?amount=10000&from_currency=CZK&to_currency=EUR)"
+API Endpoints:
+Method      Endpoint                Description 
+GET         /api/v1/compare         Compare transfer offers across providers sorted by recipient payout
+GET         /api/v1/rates           Fetch current mid-market rate for a currency pair
+GET         /api/v1/rates/history   Historical exchange rate points from DB for frontend charts
 
 
-Running Tests
+Testing
 pytest -v
+All unit tests for financial calculations and integration tests with rollback DB sessions should pass.
 
-
----
 
