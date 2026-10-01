@@ -12,3 +12,4 @@ class RateHistoryResponse(BaseModel):
     provider: str
     points_count: int
     history: list[RateHistoryPoint]
+    

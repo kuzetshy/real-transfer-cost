@@ -1,0 +1,112 @@
+import logging
+from datetime import datetime, date
+from decimal import Decimal
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from app.db.session import async_session_maker
+from app.services.rates import rates_client
+from app.services.calculator import WiseProvider, RevolutProvider, CzechBankProvider
+from app.services.history import HistoryService
+
+logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler()
+
+# Список провайдеров для расчёта эффективного курса
+providers = [
+    WiseProvider(),
+    RevolutProvider(),
+    CzechBankProvider(),
+]
+
+SUPPORTED_PAIRS = [
+    ("EUR", "CZK"),
+    ("CZK", "EUR"),
+    ("USD", "CZK"),
+    ("CZK", "USD"),
+]
+
+
+async def collect_daily_rates_job():
+    """
+    Фоновая задача: собирает mid-market курс и эффективные курсы провайдеров,
+    сохраняя их в историю через HistoryService.
+    """
+    logger.info("🕒 [Scheduler] Starting daily exchange rates collection...")
+    today = date.today()
+    is_weekend = datetime.now().weekday() >= 5
+    base_amount = Decimal("1000.0")
+
+    try:
+        async with async_session_maker() as session:
+            history_service = HistoryService(session)
+
+            for from_curr, to_curr in SUPPORTED_PAIRS:
+                try:
+                    # 1. Получаем среднерыночный курс (ECB / Frankfurter / CNB)
+                    mid_rate = await rates_client.get_rate(from_curr, to_curr)
+
+                    # Сохраняем среднерыночный курс как бенчмарк
+                    await history_service.upsert_rate(
+                        provider="frankfurter",
+                        base_currency=from_curr,
+                        target_currency=to_curr,
+                        rate=mid_rate,
+                        rate_date=today,
+                    )
+
+                    # 2. Прогоняем через калькуляторы провайдеров, чтобы сохранить их реальный курс
+                    for provider in providers:
+                        quote = provider.calculate(
+                            amount=base_amount,
+                            mid_rate=mid_rate,
+                            is_weekend=is_weekend,
+                        )
+                        # quote.provider_name / quote.rate или вычисленный эффективный курс
+                        rate_value = getattr(quote, "rate", None) or getattr(quote, "effective_rate", mid_rate)
+                        provider_name = getattr(quote, "provider_name", provider.__class__.__name__.replace("Provider", "").lower())
+
+                        await history_service.upsert_rate(
+                            provider=provider_name,
+                            base_currency=from_curr,
+                            target_currency=to_curr,
+                            rate=rate_value,
+                            rate_date=today,
+                        )
+
+                    logger.info(f"✅ Rates saved for pair {from_curr} -> {to_curr}")
+
+                except Exception as pair_err:
+                    logger.error(
+                        f"❌ Failed to collect rates for {from_curr} -> {to_curr}: {pair_err}",
+                        exc_info=True,
+                    )
+
+            await session.commit()
+            logger.info("🎉 [Scheduler] Daily exchange rates collected and committed successfully.")
+
+    except Exception as e:
+        logger.error(f"💥 [Scheduler] Critical error during daily collection: {e}", exc_info=True)
+
+
+def start_scheduler():
+    """Запуск шедулера по расписанию в 14:30 (Europe/Prague)."""
+    scheduler.add_job(
+        collect_daily_rates_job,
+        trigger="cron",
+        hour=14,
+        minute=30,
+        timezone="Europe/Prague",
+        id="daily_rates_collector",
+        replace_existing=True,
+    )
+    scheduler.start()
+    logger.info("🚀 [Scheduler] APScheduler started.")
+
+
+def stop_scheduler():
+    """Корректная остановка шедулера."""
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("🛑 [Scheduler] APScheduler stopped.")
+        

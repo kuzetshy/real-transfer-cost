@@ -4,12 +4,13 @@ import httpx
 import respx
 from app.db.session import get_db
 from app.main import app
-
 from datetime import date
 from decimal import Decimal
 from app.db.models import ExchangeRateHistory
 from app.services.history import HistoryService
 from tests.conftest import db_session
+from httpx import AsyncClient, ASGITransport
+
 
 @pytest.mark.asyncio
 @respx.mock
@@ -68,3 +69,18 @@ async def test_get_rates_history_endpoint(client, db_session):
         assert any(p["date"] == test_date.isoformat() for p in data["history"])
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_cors_headers_allowed():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        headers = {
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "GET",
+        }
+        response = await ac.options("/api/v1/rates", headers=headers)
+        
+        assert response.status_code == 200
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
+        assert "GET" in response.headers.get("access-control-allow-methods", "")
