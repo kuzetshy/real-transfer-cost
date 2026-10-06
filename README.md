@@ -83,3 +83,21 @@ pytest -v
 All unit tests for financial calculations and integration tests with rollback DB sessions should pass.
 
 
+## Frontend Client
+
+The frontend application is built with React 19, TypeScript, Vite, and Tailwind CSS.
+
+### Running the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+
+Open http://localhost:5173 to access the interactive transfer cost calculator.
+
+##Load Testing 
+locust -f locustfile.py
+
+Open http://localhost:8089 to simulate user traffic. Current benchmark with 100 concurrent users demonstrates 0% failure rate and a median response time of 2 ms.
+

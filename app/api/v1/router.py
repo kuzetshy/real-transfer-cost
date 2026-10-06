@@ -1,7 +1,7 @@
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import List
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -65,12 +65,18 @@ async def get_rates_history(
 
     if base_curr == target_curr:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Базовая и целевая валюты не должны совпадать."
         )
 
     end = to_date or date.today()
     start = from_date or (end - timedelta(days=days))
+
+    if start > end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Начальная дата (from_date) не может быть позже конечной даты (to_date)."
+        )
 
     history_service = HistoryService(db)
     records = await history_service.get_history(
@@ -92,3 +98,4 @@ async def get_rates_history(
         points_count=len(history_points),
         history=history_points,
     )
+

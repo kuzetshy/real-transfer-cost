@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
 from app.db.models import ExchangeRateHistory
-from sqlalchemy import select 
 
 
 class HistoryService:
@@ -29,7 +30,7 @@ class HistoryService:
             return 0
 
         stmt = insert(ExchangeRateHistory).values(rates_data)
-        
+
         # Если запись для пары, даты и провайдера уже есть — обновляем курс
         stmt = stmt.on_conflict_do_update(
             constraint="uq_rate_history_pair_date_provider",
@@ -40,8 +41,6 @@ class HistoryService:
         await self.session.commit()
         return len(rates_data)
 
-
-
     async def get_history(
         self,
         base_currency: str,
@@ -50,22 +49,30 @@ class HistoryService:
         to_date: date | None = None,
     ) -> list[ExchangeRateHistory]:
         """
-        Возвращает историю курсов, отсортированную по возрастанию даты (для графиков).
+        Возвращает историю курсов за любой диапазон дат,
+        отсортированную по возрастанию даты (для графиков).
         """
+        # Если обе даты пустые, отдаём последние 30 дней
+        if not to_date and not from_date:
+            to_date = date.today()
+            from_date = to_date - timedelta(days=30)
+        elif not to_date and from_date:
+            to_date = date.today()
+        elif not from_date and to_date:
+            from_date = to_date - timedelta(days=30)
+
         stmt = (
             select(ExchangeRateHistory)
             .where(
                 ExchangeRateHistory.base_currency == base_currency.upper(),
                 ExchangeRateHistory.target_currency == target_currency.upper(),
+                ExchangeRateHistory.rate_date >= from_date,
+                ExchangeRateHistory.rate_date <= to_date,
             )
             .order_by(ExchangeRateHistory.rate_date.asc())
         )
 
-        if from_date:
-            stmt = stmt.where(ExchangeRateHistory.rate_date >= from_date)
-        if to_date:
-            stmt = stmt.where(ExchangeRateHistory.rate_date <= to_date)
-
         result = await self.session.scalars(stmt)
         return list(result.all())
+
     
