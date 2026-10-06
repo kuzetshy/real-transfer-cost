@@ -9,6 +9,26 @@ An open-source financial API and web client to calculate and compare real intern
 * **Flexible History**: Fetch historical exchange rates with custom date-range filtering.
 * **High Performance**: Tested with Locust to handle 100+ concurrent users with 0% failure rate and <5ms median latency.
 
+## 🛠 Tech Stack
+
+**Backend:**
+* **Framework:** FastAPI (Python 3)
+* **Database & ORM:** PostgreSQL, SQLAlchemy (Async), asyncpg, Alembic
+* **Background Tasks:** APScheduler
+* **Caching & Math:** Cachetools (TTLCache), native `Decimal` for financial precision
+
+**Frontend:**
+* **Core:** React 19, TypeScript, Vite
+* **Styling:** Tailwind CSS
+* **UI Components:** Lucide React (Icons)
+
+**Testing & Quality Assurance:**
+* **Unit/Integration:** Pytest, pytest-asyncio, RESPX (for API mocking)
+* **Load Testing:** Locust
+
+**Infrastructure:**
+* **Containerization:** Docker & Docker Compose
+
 ## 📂 Project Structure
 
 ```text
