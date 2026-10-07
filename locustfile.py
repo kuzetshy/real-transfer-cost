@@ -2,7 +2,7 @@ from locust import HttpUser, task, between
 import random
 
 class WebsiteUser(HttpUser):
-    # Пауза между запросами пользователя от 0.5 до 2 секунд
+    # Simulated user pacing: 0.5 to 2.0 seconds between requests
     wait_time = between(0.5, 2.0)
 
     PAIRS = [
@@ -14,7 +14,7 @@ class WebsiteUser(HttpUser):
 
     @task(3)
     def test_compare_endpoint(self):
-        """Частый кейс: пользователь считает перевод"""
+        """Frequent scenario: user executes transfer cost comparison."""
         from_curr, to_curr = random.choice(self.PAIRS)
         amount = random.randint(100, 50000)
         self.client.get(
@@ -24,7 +24,7 @@ class WebsiteUser(HttpUser):
 
     @task(1)
     def test_history_endpoint(self):
-        """Редкий кейс: пользователь открыл график за разные даты"""
+        """Less frequent scenario: user views the historical rate chart."""
         self.client.get(
             "/api/v1/rates/history?base=EUR&target=CZK&days=30",
             name="/api/v1/rates/history"
@@ -32,10 +32,9 @@ class WebsiteUser(HttpUser):
 
     @task(2)
     def test_current_rate_endpoint(self):
-        """Проверка кэша mid-market курса"""
+        """Mid-market rate lookup with in-memory caching test."""
         from_curr, to_curr = random.choice(self.PAIRS)
         self.client.get(
             f"/api/v1/rates?from_currency={from_curr}&to_currency={to_curr}",
             name="/api/v1/rates"
         )
-        

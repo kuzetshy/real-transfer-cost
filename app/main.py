@@ -8,21 +8,21 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Запускается при старте FastAPI
+    # Executed on application startup
     start_scheduler()
     yield
-    # Выполняется при graceful shutdown сервера
+    # Executed during graceful shutdown
     stop_scheduler()
 
 
 app = FastAPI(
     title="Real Transfer Cost API",
-    description="API для расчета реальной стоимости международных переводов",
+    description="API for calculating the real cost and hidden markup of international money transfers",
     version="0.1.0",
     lifespan=lifespan,
 )
 
-# Разрешаем запросы с локального фронтенда на Vite
+# Allow cross-origin requests from the local Vite development server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -34,7 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключаем роутер с префиксом /api/v1
+# Register API v1 router prefix
 app.include_router(api_v1_router, prefix="/api/v1")
 
 

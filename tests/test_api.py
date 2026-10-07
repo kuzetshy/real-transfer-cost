@@ -73,7 +73,7 @@ async def test_get_rates_history_invalid_date_range(client):
         "/api/v1/rates/history?base=EUR&target=CZK&from_date=2026-05-10&to_date=2026-05-01"
     )
     assert response.status_code == 400
-    assert "не может быть позже" in response.json()["detail"]
+    assert "cannot be later than" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -89,4 +89,3 @@ async def test_cors_headers_allowed():
         assert response.status_code == 200
         assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
         assert "GET" in response.headers.get("access-control-allow-methods", "")
-        

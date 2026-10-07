@@ -16,8 +16,8 @@ class HistoryService:
         rates_data: list[dict],
     ) -> int:
         """
-        Массовая вставка или обновление записей курсов.
-        Каждый элемент rates_data:
+        Bulk insert or update exchange rate entries.
+        Each rates_data dictionary schema:
         {
             "base_currency": "EUR",
             "target_currency": "CZK",
@@ -31,7 +31,7 @@ class HistoryService:
 
         stmt = insert(ExchangeRateHistory).values(rates_data)
 
-        # Если запись для пары, даты и провайдера уже есть — обновляем курс
+        # Update exchange rate if an entry for the pair, date, and provider already exists
         stmt = stmt.on_conflict_do_update(
             constraint="uq_rate_history_pair_date_provider",
             set_={"rate": stmt.excluded.rate},
@@ -49,10 +49,10 @@ class HistoryService:
         to_date: date | None = None,
     ) -> list[ExchangeRateHistory]:
         """
-        Возвращает историю курсов за любой диапазон дат,
-        отсортированную по возрастанию даты (для графиков).
+        Retrieve exchange rate history for a specified date range,
+        sorted in ascending order by date (optimized for charts).
         """
-        # Если обе даты пустые, отдаём последние 30 дней
+        # Default to the last 30 days if both boundary dates are omitted
         if not to_date and not from_date:
             to_date = date.today()
             from_date = to_date - timedelta(days=30)

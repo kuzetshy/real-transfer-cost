@@ -8,7 +8,7 @@ from app.services.history import HistoryService
 @pytest.mark.asyncio
 async def test_upsert_rates_batch_insert_and_update(db_session):
     service = HistoryService(db_session)
-    test_date = date(2001, 5, 10)  # Дата из прошлого
+    test_date = date(2001, 5, 10)  # Historical reference date
 
     initial_records = [
         {
@@ -30,7 +30,7 @@ async def test_upsert_rates_batch_insert_and_update(db_session):
     inserted_count = await service.upsert_rates_batch(initial_records)
     assert inserted_count == 2
 
-    # Upsert с новым значением
+    # Upsert with an updated rate value
     updated_records = [
         {
             "base_currency": "EUR",

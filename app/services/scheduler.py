@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
 
-# Список провайдеров для расчёта эффективного курса
+# List of providers to calculate effective rates and fees
 providers = [
     WiseProvider(),
     RevolutProvider(),
@@ -29,8 +29,8 @@ SUPPORTED_PAIRS = [
 
 async def collect_daily_rates_job():
     """
-    Фоновая задача: собирает mid-market курс и эффективные курсы провайдеров,
-    сохраняя их в историю через HistoryService пачкой (batch upsert).
+    Background job: collects mid-market rates and providers' effective rates,
+    persisting them into history via HistoryService using a batch upsert.
     """
     logger.info("🕒 [Scheduler] Starting daily exchange rates collection...")
     today = date.today()
@@ -41,7 +41,7 @@ async def collect_daily_rates_job():
 
     for from_curr, to_curr in SUPPORTED_PAIRS:
         try:
-            # 1. Получаем среднерыночный курс (Frankfurter/ECB)
+            # 1. Fetch mid-market exchange rate (Frankfurter/ECB)
             mid_rate = await rates_client.get_rate(from_curr, to_curr)
 
             records_to_insert.append({
@@ -52,7 +52,7 @@ async def collect_daily_rates_job():
                 "provider": "frankfurter",
             })
 
-            # 2. Прогоняем через калькуляторы провайдеров
+            # 2. Compute quotes across provider calculators
             for provider in providers:
                 quote = provider.calculate(
                     amount=base_amount,
@@ -96,7 +96,7 @@ async def collect_daily_rates_job():
 
 
 def start_scheduler():
-    """Запуск шедулера по расписанию в 14:30 (Europe/Prague)."""
+    """Start the scheduler with a daily cron trigger at 14:30 (Europe/Prague)."""
     scheduler.add_job(
         collect_daily_rates_job,
         trigger="cron",
@@ -111,9 +111,7 @@ def start_scheduler():
 
 
 def stop_scheduler():
-    """Корректная остановка шедулера."""
+    """Gracefully shutdown the scheduler."""
     if scheduler.running:
         scheduler.shutdown(wait=False)
         logger.info("🛑 [Scheduler] APScheduler stopped.")
-
-        

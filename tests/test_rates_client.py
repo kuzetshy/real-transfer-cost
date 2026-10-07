@@ -12,7 +12,7 @@ async def test_get_historical_rates_success():
     start_date = date(2026, 9, 1)
     end_date = date(2026, 9, 2)
 
-    # Мокаем ответ от Frankfurter API
+    # Mock response from Frankfurter API
     mock_url = f"{client.BASE_URL}/2026-09-01..2026-09-02"
     mock_response = {
         "amount": 1.0,
@@ -36,7 +36,7 @@ async def test_get_historical_rates_success():
         end_date=end_date,
     )
 
-    # Проверяем структуру и типы
+    # Verify data structure and Decimal types
     assert len(result) == 2
     assert date(2026, 9, 1) in result
     assert result[date(2026, 9, 1)]["CZK"] == Decimal("25.105")

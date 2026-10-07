@@ -8,11 +8,11 @@ async def seed_last_days(days: int = 30):
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
 
-    print(f"🔄 Сбор истории курсов с {start_date} по {end_date}...")
+    print(f"🔄 Fetching rate history from {start_date} to {end_date}...")
 
     rates_client = RatesClient()
     
-    # Пары, которые нам нужны для калькулятора
+    # Currency pairs required by the transfer calculator
     tasks_config = [
         {"base": "EUR", "targets": ["CZK"]},
         {"base": "USD", "targets": ["CZK"]},
@@ -24,7 +24,7 @@ async def seed_last_days(days: int = 30):
     for cfg in tasks_config:
         base = cfg["base"]
         targets = cfg["targets"]
-        print(f"📊 Запрос {base} -> {targets}...")
+        print(f"📊 Requesting {base} -> {targets}...")
 
         try:
             rates_by_date = await rates_client.get_historical_rates(
@@ -44,15 +44,14 @@ async def seed_last_days(days: int = 30):
                         "provider": "frankfurter",
                     })
         except Exception as e:
-            print(f"⚠️ Ошибка при загрузке {base} -> {targets}: {e}")
+            print(f"⚠️ Error fetching {base} -> {targets}: {e}")
 
-    print(f"📥 Всего собрано {len(records_to_insert)} записей. Сохранение в PostgreSQL...")
+    print(f"📥 Total collected records: {len(records_to_insert)}. Saving to PostgreSQL...")
 
     async with async_session_maker() as session:
         service = HistoryService(session)
         count = await service.upsert_rates_batch(records_to_insert)
-        print(f"✅ Успешно сохранено/обновлено {count} записей в БД!")
+        print(f"✅ Successfully saved/updated {count} records in database!")
 
 if __name__ == "__main__":
     asyncio.run(seed_last_days(30))
-    

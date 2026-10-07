@@ -12,7 +12,7 @@ class ProviderQuote(BaseModel):
     transfer_fee: Decimal
     exchange_rate: Decimal
     recipient_gets: Decimal
-    total_cost: Decimal  # Разница между идеальным mid-market получением и фактическим 💡
+    total_cost: Decimal  # The difference between ideal mid-market acquisition and actual 
     is_best: bool = False
 
 class QuoteCompareResponse(BaseModel):

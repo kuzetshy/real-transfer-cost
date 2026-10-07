@@ -9,7 +9,7 @@ from app.main import app
 
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    # NullPool гарантирует, что соединение создается и закрывается строго в текущем event loop
+    # NullPool ensures the connection is created and disposed strictly within the active event loop
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
     session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 

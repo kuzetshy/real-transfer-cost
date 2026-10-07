@@ -5,19 +5,19 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-# 1. Импортируем конфиг и Base с моделями
+# 1. Import application settings and Base declarative models
 from app.core.config import settings
 from app.db.models import Base
 
 config = context.config
 
-# Подставляем URL базы данных динамически из pydantic settings
+# Dynamically set the database URL from Pydantic settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 2. Указываем метаданные для автогенерации
+# 2. Assign target metadata for autogeneration support
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
@@ -55,4 +55,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-    

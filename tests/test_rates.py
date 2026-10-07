@@ -9,17 +9,17 @@ from app.services.rates import RatesClient
 async def test_rates_client_success_and_cache():
     client = RatesClient()
     
-    # Мокаем внешний API Frankfurter 🎭
+    # Mock external Frankfurter API response 🎭
     respx.get("https://api.frankfurter.dev/v1/latest?from=EUR&to=CZK").mock(
         return_value=httpx.Response(200, json={"rates": {"CZK": 25.40}})
     )
 
-    # 1. Первый вызов — должен пойти в сеть 🌐
+    # 1. Initial call — makes external network request 🌐
     rate_first = await client.get_rate("eur", "czk")
     assert rate_first == Decimal("25.40")
 
-    # 2. Второй вызов — должен взяться из кэша мгновенно (сеть отключена, мок не сработает повторно) ⚡
-    # Убираем мок, чтобы убедиться, что запрос в сеть НЕ идет
+    # 2. Subsequent call — resolves immediately from cache ⚡
+    # Clear mocks to verify no further network requests are dispatched
     respx.clear()
     
     rate_cached = await client.get_rate("EUR", "CZK")

@@ -14,6 +14,7 @@ from app.services.history import HistoryService
 
 router = APIRouter(tags=["Transfer Calculation & Rates"])
 
+# Registered transfer provider calculation strategies
 providers = [
     WiseProvider(),
     RevolutProvider(),
@@ -23,9 +24,10 @@ providers = [
 
 @router.get("/rates")
 async def get_current_rate(
-    from_currency: str = Query("CZK", description="Исходная валюта", min_length=3, max_length=3),
-    to_currency: str = Query("EUR", description="Целевая валюта", min_length=3, max_length=3)
+    from_currency: str = Query("CZK", description="Source currency code", min_length=3, max_length=3),
+    to_currency: str = Query("EUR", description="Target currency code", min_length=3, max_length=3)
 ):
+    """Fetch current mid-market exchange rate between two currencies."""
     rate = await rates_client.get_rate(from_currency, to_currency)
     return {
         "from": from_currency.upper(),
@@ -36,10 +38,11 @@ async def get_current_rate(
 
 @router.get("/compare", response_model=List[ProviderQuote])
 async def compare_transfers(
-    amount: Decimal = Query(Decimal("10000.0"), gt=0, description="Сумма перевода"),
-    from_currency: str = Query("CZK", description="Валюта отправки", min_length=3, max_length=3),
-    to_currency: str = Query("EUR", description="Валюта получения", min_length=3, max_length=3)
+    amount: Decimal = Query(Decimal("10000.0"), gt=0, description="Transfer amount"),
+    from_currency: str = Query("CZK", description="Source currency code", min_length=3, max_length=3),
+    to_currency: str = Query("EUR", description="Target currency code", min_length=3, max_length=3)
 ):
+    """Compare transfer fees, effective exchange rates, and received amounts across providers."""
     mid_rate = await rates_client.get_rate(from_currency, to_currency)
     is_weekend = datetime.now().weekday() >= 5
 
@@ -53,20 +56,21 @@ async def compare_transfers(
 
 @router.get("/rates/history", response_model=RateHistoryResponse)
 async def get_rates_history(
-    base: str = Query("EUR", description="Базовая валюта", min_length=3, max_length=3),
-    target: str = Query("CZK", description="Целевая валюта", min_length=3, max_length=3),
-    days: int = Query(default=30, ge=1, le=365, description="Период в днях (используется, если from_date не задан)"),
-    from_date: date | None = Query(None, description="Начальная дата (YYYY-MM-DD)"),
-    to_date: date | None = Query(None, description="Конечная дата (YYYY-MM-DD)"),
+    base: str = Query("EUR", description="Base currency code", min_length=3, max_length=3),
+    target: str = Query("CZK", description="Target currency code", min_length=3, max_length=3),
+    days: int = Query(default=30, ge=1, le=365, description="Timeframe in days (used when from_date is omitted)"),
+    from_date: date | None = Query(None, description="Start date (YYYY-MM-DD)"),
+    to_date: date | None = Query(None, description="End date (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
 ):
+    """Retrieve historical exchange rate data points within a specified time range."""
     base_curr = base.upper()
     target_curr = target.upper()
 
     if base_curr == target_curr:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Базовая и целевая валюты не должны совпадать."
+            detail="Base and target currencies must not be identical."
         )
 
     end = to_date or date.today()
@@ -75,7 +79,7 @@ async def get_rates_history(
     if start > end:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Начальная дата (from_date) не может быть позже конечной даты (to_date)."
+            detail="Start date (from_date) cannot be later than end date (to_date)."
         )
 
     history_service = HistoryService(db)
@@ -98,4 +102,3 @@ async def get_rates_history(
         points_count=len(history_points),
         history=history_points,
     )
-

@@ -16,7 +16,7 @@ async def test_collect_daily_rates_job_success():
         mock_get_rate.return_value = mock_rate
         mock_upsert.return_value = 16
 
-        # Настраиваем контекстный менеджер async with async_session_maker()
+        # Configure async with async_session_maker() context manager
         mock_session = AsyncMock()
         mock_session_maker.return_value.__aenter__.return_value = mock_session
 
@@ -28,5 +28,3 @@ async def test_collect_daily_rates_job_success():
         inserted_payload = mock_upsert.call_args[0][0]
         assert len(inserted_payload) > 0
         assert inserted_payload[0]["rate"] == mock_rate
-
-        
