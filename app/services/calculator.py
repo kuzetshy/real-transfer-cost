@@ -37,7 +37,7 @@ class WiseProvider(BaseProvider):
             total_fee_czk=round(float(fee), 2),
             effective_rate=round(float(received / amt), 4) if amt > 0 else 0.0,
             markup_loss_czk=0.0,
-            description="Прозрачная комиссия: 0.45% + 15 CZK, чистый биржевой курс"
+            description="Transparent fee: 0.45% + 15 CZK, mid-market rate"
         )
 
 
@@ -54,7 +54,7 @@ class RevolutProvider(BaseProvider):
         convertible_amount = amt - fee
         received = convertible_amount * rate
 
-        weekend_note = " (включая 1% сбор за выходной день)" if is_weekend else " (будний день, без комиссии)"
+        weekend_note = " (including 1% fee for weekend day)" if is_weekend else " (weekday, no fee)"
 
         return ProviderQuote(
             provider_name=self.name,
@@ -63,7 +63,7 @@ class RevolutProvider(BaseProvider):
             total_fee_czk=round(float(fee), 2),
             effective_rate=round(float(received / amt), 4) if amt > 0 else 0.0,
             markup_loss_czk=0.0,
-            description=f"Биржевой курс{weekend_note}"
+            description=f"Mid-market rate{weekend_note}"
         )
 
 
@@ -92,6 +92,6 @@ class CzechBankProvider(BaseProvider):
             total_fee_czk=round(float(total_loss), 2),
             effective_rate=round(float(received / amt), 4) if amt > 0 else 0.0,
             markup_loss_czk=round(float(markup_loss), 2),
-            description="Скрытая наценка на курс ~2.5% + 100 CZK комиссия за перевод"
+            description="Hidden markup on rate ~2.5% + 100 CZK transfer fee"
         )
     

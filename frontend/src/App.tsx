@@ -5,7 +5,7 @@ import type { ProviderQuote } from "./types";
 const CURRENCIES = ["CZK", "EUR", "USD"];
 
 export default function App() {
-  const [amount, setAmount] = useState<number>(10000);
+  const [amount, setAmount] = useState<string>("10000");
   const [fromCurr, setFromCurr] = useState<string>("CZK");
   const [toCurr, setToCurr] = useState<string>("EUR");
   const [quotes, setQuotes] = useState<ProviderQuote[]>([]);
@@ -13,23 +13,31 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchQuotes = async () => {
+    const numericAmount = parseFloat(amount) || 0;
+
+    if (numericAmount <= 0) {
+      setError("Please enter a valid transfer amount.");
+      return;
+    }
+
     if (fromCurr === toCurr) {
-      setError("Выберите разные валюты для перевода");
+      setError("Please select different currencies for transfer.");
       setQuotes([]);
       return;
     }
+
     setError(null);
     setLoading(true);
 
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/v1/compare?from_currency=${fromCurr}&to_currency=${toCurr}&amount=${amount}`
+        `http://127.0.0.1:8000/api/v1/compare?from_currency=${fromCurr}&to_currency=${toCurr}&amount=${numericAmount}`
       );
-      if (!res.ok) throw new Error("Не удалось получить котировки");
+      if (!res.ok) throw new Error("Failed to fetch provider quotes.");
       const data: ProviderQuote[] = await res.json();
       setQuotes(data);
     } catch (err: any) {
-      setError(err.message || "Ошибка соединения с сервером");
+      setError(err.message || "Failed to connect to the server.");
     } finally {
       setLoading(false);
     }
@@ -38,6 +46,27 @@ export default function App() {
   useEffect(() => {
     fetchQuotes();
   }, [fromCurr, toCurr]);
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    if (value === "") {
+      setAmount("");
+      return;
+    }
+
+    const normalized = value.replace(/^0+(?=\d)/, "");
+
+    if (/^\d*\.?\d*$/.test(normalized)) {
+      setAmount(normalized);
+    }
+  };
+
+  const handleAmountBlur = () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setAmount("100");
+    }
+  };
 
   const handleSwap = () => {
     setFromCurr(toCurr);
@@ -48,38 +77,40 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* Заголовок */}
+        {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
             Real Transfer Cost 💸
           </h1>
           <p className="text-slate-600 text-lg">
-            Честное сравнение комиссий и скрытых наценок на курс
+            Transparent comparison of transfer fees and hidden exchange rate markups
           </p>
         </div>
 
-        {/* Форма ввода суммы и валют */}
+        {/* Input Form */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
           <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
             
-            {/* Сумма */}
+            {/* Amount */}
             <div className="md:col-span-3 space-y-1">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Сумма отправки
+                You send
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={amount}
-                min={1}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={handleAmountChange}
+                onBlur={handleAmountBlur}
+                placeholder="0"
                 className="w-full text-2xl font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
-            {/* Валюта отправки */}
+            {/* Source Currency */}
             <div className="md:col-span-1 space-y-1">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Из
+                From
               </label>
               <select
                 value={fromCurr}
@@ -92,21 +123,21 @@ export default function App() {
               </select>
             </div>
 
-            {/* Кнопка Swap */}
+            {/* Swap Button */}
             <div className="md:col-span-1 flex justify-center pt-5">
               <button
                 onClick={handleSwap}
                 className="p-3 rounded-full hover:bg-slate-100 transition border border-slate-200 text-slate-600 hover:text-indigo-600"
-                title="Поменять местами"
+                title="Swap currencies"
               >
                 <ArrowRightLeft className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Валюта получения */}
+            {/* Target Currency */}
             <div className="md:col-span-1 space-y-1">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                В
+                To
               </label>
               <select
                 value={toCurr}
@@ -119,14 +150,14 @@ export default function App() {
               </select>
             </div>
 
-            {/* Кнопка расчета */}
+            {/* Submit Button */}
             <div className="md:col-span-1 pt-5">
               <button
                 onClick={fetchQuotes}
                 disabled={loading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3.5 rounded-xl transition shadow-sm disabled:opacity-50"
               >
-                {loading ? "..." : "Расчёт"}
+                {loading ? "..." : "Compare"}
               </button>
             </div>
 
@@ -140,7 +171,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Результаты / Карточки провайдеров */}
+        {/* Comparison Results */}
         <div className="space-y-4">
           {quotes.map((quote, idx) => {
             const isBest = idx === 0;
@@ -155,7 +186,7 @@ export default function App() {
               >
                 {isBest && (
                   <div className="absolute -top-3 left-6 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                    <Award className="w-3.5 h-3.5" /> Лучшее предложение
+                    <Award className="w-3.5 h-3.5" /> Best Offer
                   </div>
                 )}
 
@@ -165,16 +196,16 @@ export default function App() {
                       {quote.provider_name}
                     </h3>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      Курс обмена: 1 {fromCurr} = {quote.exchange_rate} {toCurr}
+                      {quote.description || `Effective rate: 1 ${fromCurr} = ${Number(quote.effective_rate).toFixed(4)} ${toCurr}`}
                     </p>
                   </div>
 
                   <div className="text-right">
                     <div className="text-2xl font-black text-slate-900">
-                      {Number(quote.received_amount).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} {toCurr}
+                      {Number(quote.received_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })} {toCurr}
                     </div>
                     <div className="text-xs text-slate-500">
-                      Получатель получит на счёт
+                      Recipient gets
                     </div>
                   </div>
                 </div>
@@ -183,17 +214,17 @@ export default function App() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-slate-600">
                   <div>
-                    <span className="text-slate-400 block">Комиссия сервиса:</span>
-                    <span className="font-semibold">{Number(quote.transfer_fee).toFixed(2)} {fromCurr}</span>
+                    <span className="text-slate-400 block">Total fee:</span>
+                    <span className="font-semibold">{Number(quote.total_fee_czk).toFixed(2)} CZK</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Скрытая наценка:</span>
-                    <span className={`font-semibold ${Number(quote.hidden_markup_fee) > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                      {Number(quote.hidden_markup_fee).toFixed(2)} {fromCurr}
+                    <span className="text-slate-400 block">Hidden FX markup:</span>
+                    <span className={`font-semibold ${Number(quote.markup_loss_czk) > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {Number(quote.markup_loss_czk).toFixed(2)} CZK
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Эффективный курс:</span>
+                    <span className="text-slate-400 block">Effective rate:</span>
                     <span className="font-semibold">{Number(quote.effective_rate).toFixed(4)}</span>
                   </div>
                 </div>

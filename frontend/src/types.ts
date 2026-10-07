@@ -1,11 +1,11 @@
 export interface ProviderQuote {
   provider_name: string;
-  transfer_fee: number;
-  exchange_rate: number;
+  sent_amount: number;
   received_amount: number;
-  hidden_markup_fee: number;
-  total_cost: number;
+  total_fee_czk: number;
   effective_rate: number;
+  markup_loss_czk: number;
+  description: string;
 }
 
 export interface RateHistoryPoint {
