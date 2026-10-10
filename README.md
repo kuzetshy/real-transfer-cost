@@ -1,58 +1,86 @@
 # Real Transfer Cost 💸
 
-An open-source financial API and web client to calculate and compare real international transfer costs, revealing hidden markup fees and service charges.
+An open-source financial comparison platform and RESTful API that calculates the true cost of international money transfers, uncovering hidden exchange rate markups and service fees across providers.
 
-## 🌟 Features
-* **Accurate Calculations**: Uses `Decimal` for precision to eliminate floating-point errors.
-* **Smart Caching**: In-memory `TTLCache` minimizes external API calls.
-* **Background Worker**: Configured with `APScheduler` to fetch and batch-upsert daily rates automatically.
-* **Flexible History**: Fetch historical exchange rates with custom date-range filtering.
-* **High Performance**: Tested with Locust to handle 100+ concurrent users with 0% failure rate and <5ms median latency.
+---
+
+## 🌟 Key Features
+
+* **High-Precision Calculations:** Backed by native `Decimal` arithmetic to eliminate floating-point precision loss.
+* **Smart Rate Caching:** In-memory `TTLCache` minimizes outbound third-party API latency.
+* **Automated Data Harvesting:** Background scheduler powered by `APScheduler` fetches and batch-upserts daily mid-market rates.
+* **Historical Rate Volatility:** Interactive time-series visualization (`7D`, `30D`, `90D`) built with Recharts.
+* **Modular Full-Stack Architecture:** Decoupled backend (FastAPI) and modern single-page frontend (React 19, TypeScript, Tailwind CSS).
+* **High Performance:** Stress-tested with Locust, sustaining 100+ concurrent users with 0% failure rate and <5ms median response time.
+* **Containerized Deployment:** Orchestrated multi-container setup via Docker Compose with an optimized multi-stage Nginx build for static serving.
+
+---
 
 ## 🛠 Tech Stack
 
-**Backend:**
-* **Framework:** FastAPI (Python 3)
-* **Database & ORM:** PostgreSQL, SQLAlchemy (Async), asyncpg, Alembic
+### Backend
+* **Language & Framework:** Python 3.12+, FastAPI
+* **Database & ORM:** PostgreSQL 16, SQLAlchemy 2.0 (Async), `asyncpg`, Alembic
 * **Background Tasks:** APScheduler
-* **Caching & Math:** Cachetools (TTLCache), native `Decimal` for financial precision
+* **Caching & Precision:** `cachetools` (`TTLCache`), native `Decimal`
 
-**Frontend:**
+### Frontend
 * **Core:** React 19, TypeScript, Vite
-* **Styling:** Tailwind CSS
-* **UI Components:** Lucide React (Icons)
+* **Styling & Layout:** Tailwind CSS
+* **Data Visualization:** Recharts
+* **Icons:** Lucide React
 
-**Testing & Quality Assurance:**
-* **Unit/Integration:** Pytest, pytest-asyncio, RESPX (for API mocking)
+### Infrastructure & QA
+* **Containerization:** Docker, Docker Compose, Nginx (Alpine)
+* **Testing:** Pytest, `pytest-asyncio`, RESPX (API mocking)
 * **Load Testing:** Locust
 
-**Infrastructure:**
-* **Containerization:** Docker & Docker Compose
+---
 
 ## 📂 Project Structure
 
 ```text
 real-transfer-cost/
 ├── app/
-│   ├── api/v1/          # Versioned API routes (/compare, /rates, /rates/history)
-│   ├── core/            # Configuration & environment settings
-│   ├── db/              # Database models (ExchangeRateHistory) & session maker
-│   ├── schemas/         # Pydantic validation schemas
-│   └── services/        # Business logic (Calculator, Providers, Scheduler, History)
-├── frontend/            # React 19 + TypeScript + Vite + Tailwind CSS client
-├── migrations/          # Alembic asynchronous migrations
-├── scripts/             # CLI utility scripts (e.g., seed_history.py)
-├── tests/               # Unit and integration test suite (Pytest)
-├── docker-compose.yml   # PostgreSQL container setup
-├── locustfile.py        # Locust load testing scenarios
-└── requirements.txt     # Python dependencies
+│   ├── api/v1/          # Versioned REST endpoints (/compare, /rates, /rates/history)
+│   ├── core/            # App configuration and settings
+│   ├── db/              # SQLAlchemy models & async engine session setup
+│   ├── schemas/         # Pydantic validation and serialization schemas
+│   └── services/        # Domain logic (Calculator, Providers, Scheduler, History)
+├── frontend/
+│   ├── src/
+│   │   ├── api/         # Backend API client
+│   │   ├── components/  # Modular React components (TransferForm, ProviderCard, Chart)
+│   │   ├── types/       # TypeScript type declarations
+│   │   └── App.tsx      # Main application view
+│   ├── Dockerfile       # Multi-stage production build (Node.js -> Nginx)
+│   └── package.json
+├── migrations/          # Asynchronous Alembic database migrations
+├── scripts/             # Database seeding utilities (e.g., seed_history.py)
+├── tests/               # Backend unit and integration test suite
+├── docker-compose.yml   # Multi-service composition (Postgres, Backend, Frontend)
+├── Dockerfile           # Backend container definition
+├── locustfile.py        # Performance and load testing scenarios
+└── requirements.txt     # Python runtime dependencies
 
-## Getting Started (Backend)
-Clone & Set Up Virtual Environment:
 
-git clone https://github.com/kuzetshy/real-transfer-cost.git
+Quick Start(Docker Compose)
+The easiest way to run the entire stack (Database, API backend, and React web client) is with Docker Compose:
+git clone [https://github.com/kuzetshy/real-transfer-cost.git](https://github.com/kuzetshy/real-transfer-cost.git)
 cd real-transfer-cost
 
+# Build and start all services
+docker compose up --build
+
+Once initialized, the services will be accessible at:
+Web Client: http://localhost:3000
+Interactive API Docs (Swagger): http://localhost:8000/docs
+ReDoc: http://localhost:8000/redoc
+
+
+Local Development Setup
+1. Database & Backend
+Virtual Environment & Dependencies:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -62,54 +90,44 @@ Create a .env file in the project root:
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=transfer_cost_db
-POSTGRES_PORT=5432
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/transfer_cost_db
+POSTGRES_PORT=5433
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/transfer_cost_db
 
-Start Database & Run Migrations:
-# Start PostgreSQL in background
-docker compose up -d
+Start PostgreSQL:
+docker compose up -d postgres
 
-# Apply database migrations
+Run Migrations & Seed Historical Data:
 alembic upgrade head
-
-# (Optional) Seed 30-day historical rates
 python -m scripts.seed_history
 
-Run Development Server:
-uvicorn app.main:app --reload
-
-Interactive API documentation will be available at:
-Swagger UI: http://127.0.0.1:8000/docs
-ReDoc: http://127.0.0.1:8000/redoc
+Start API Server:
+uvicorn app.main:app --reload --port 8000
 
 
-API Endpoints
-
-Method          Endpoint                Description 
-GET             /api/v1/compare         Compare transfer offers across providers sorted by recipient payout.
-GET             /api/v1/rates           Fetch current mid-market rate for a currency pair.
-GET             /api/v1/rates/history   Historical exchange rate points from DB
-
-
-Frontend Client:
-The frontend application is built with React 19, TypeScript, Vite, and Tailwind CSS.
-
-Running the Frontend
-Open a new terminal window: 
+2. Frontend Web Client
+Install Dependencies & Start Vite Server:
 cd frontend
 npm install
 npm run dev
 
-Open http://localhost:5173 in your browser to access the interactive transfer cost calculator.
+Open http://localhost:5173 in your browser.
 
 
-Testing
-Unit & Integration Testing
-Run the Pytest suite to verify financial calculations and rollback DB sessions:
+API Overview
+
+Method          Endpoint                Description
+GET             /api/v1/compare         Compare transfer quotes sorted by highest recipient payout.
+GET             /api/v1/rates           Fetch current mid-market exchange rate for a given currency pair.
+GET             /api/v1/rates/history   Retrieve historical rates within a specified date window.
+GET             /                       API health check and operational status.
+
+
+Testing & Verification
+Unit & Integration Tests
+Ensure the PostgreSQL container is active (docker compose up -d postgres), then execute:
 pytest -v
 
-Load Testing:
-Stress testing is performed using Locust:
+Load Testing
+To run performance simulations:
 locust -f locustfile.py
-
-Open http://localhost:8089 to simulate user traffic. Current benchmark with 100 concurrent users demonstrates a 0% failure rate and a median response time of ~2 ms.
+Access the dashboard at http://localhost:8089. Benchmarks demonstrate a 0% failure rate and a ~2 ms median response time under 100 concurrent virtual users.
