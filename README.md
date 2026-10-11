@@ -1,6 +1,15 @@
 # Real Transfer Cost 💸
 
+> Full-stack web platform for real-time international money transfer fee comparison and hidden FX markup detection.
+
+[![Live Demo](https://img.shields.io/badge/demo-online-brightgreen.svg)](https://real-transfer-cost.vercel.app)
+[![API Docs](https://img.shields.io/badge/API-FastAPI-blue.svg)](https://real-transfer-cost.onrender.com/docs)
+
+🔗 **Live Application:** [https://real-transfer-cost.vercel.app](https://real-transfer-cost.vercel.app)  
+📡 **Interactive API Docs:** [https://real-transfer-cost.onrender.com/docs](https://real-transfer-cost.onrender.com/docs)
+
 An open-source financial comparison platform and RESTful API that calculates the true cost of international money transfers, uncovering hidden exchange rate markups and service fees across providers.
+
 
 ---
 
