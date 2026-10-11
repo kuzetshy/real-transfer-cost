@@ -22,6 +22,9 @@ const TIMEFRAMES = [
   { label: "90D", days: 90 },
 ];
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "https://real-transfer-cost.onrender.com";
+
 export function RateHistoryChart({ baseCurrency, targetCurrency }: RateHistoryChartProps) {
   const [data, setData] = useState<RateHistoryPoint[]>([]);
   const [days, setDays] = useState<number>(30);
@@ -40,7 +43,7 @@ export function RateHistoryChart({ baseCurrency, targetCurrency }: RateHistoryCh
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/v1/rates/history?base=${baseCurrency}&target=${targetCurrency}&days=${days}`
+          `${API_BASE_URL}/api/v1/rates/history?base=${baseCurrency}&target=${targetCurrency}&days=${days}`
         );
 
         if (!response.ok) {
@@ -48,7 +51,14 @@ export function RateHistoryChart({ baseCurrency, targetCurrency }: RateHistoryCh
         }
 
         const json: RateHistoryResponse = await response.json();
-        setData(json.history || []);
+        
+        // Преобразуем rate в число для стабильной работы Recharts
+        const formattedData = (json.history || []).map((point: any) => ({
+          ...point,
+          rate: Number(point.rate),
+        }));
+
+        setData(formattedData);
       } catch (err: any) {
         setError(err.message || "Failed to load exchange rate history.");
       } finally {
