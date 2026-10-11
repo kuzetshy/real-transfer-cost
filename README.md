@@ -4,6 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/demo-online-brightgreen.svg)](https://real-transfer-cost.vercel.app)
 [![API Docs](https://img.shields.io/badge/API-FastAPI-blue.svg)](https://real-transfer-cost.onrender.com/docs)
+[![CI Pipeline](https://github.com/kuzetshy/real-transfer-cost/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzetshy/real-transfer-cost/actions/workflows/ci.yml)
 
 🔗 **Live Application:** [https://real-transfer-cost.vercel.app](https://real-transfer-cost.vercel.app)  
 📡 **Interactive API Docs:** [https://real-transfer-cost.onrender.com/docs](https://real-transfer-cost.onrender.com/docs)
