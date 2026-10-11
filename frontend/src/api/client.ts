@@ -1,6 +1,6 @@
 import type { ProviderQuote, RateHistoryResponse } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://real-transfer-cost.onrender.com";
 
 export async function fetchTransferQuotes(
   fromCurr: string,
